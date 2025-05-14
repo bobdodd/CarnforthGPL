@@ -1,0 +1,489 @@
+/* 
+ * JavaScript/CSS GPL License Header
+ * --------------------------------
+ * Carnforth Accessible Name Tester
+ * Copyright (C) 2025 Bob Dodd
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* Carnforth Accessible Name Tester - Panel Styles */
+
+/* Base styles */
+:root {
+  /* Updated colors for WCAG 4.5:1 contrast ratio */
+  --primary-color: #0b57d0;     /* Darker blue - 4.5:1 contrast on white */
+  --hover-color: #0842a0;       /* Even darker blue for hover states */
+  --pass-color: #137333;        /* Darker green - 4.5:1 contrast on white */
+  --fail-color: #c5221f;        /* Darker red - 4.5:1 contrast on white */
+  --warn-color: #9c5700;        /* Darker amber - 4.5:1 contrast on white */
+  --border-color: #cdcdcd;      /* Darker border for better contrast */
+  --bg-color: #f5f5f5;
+  --highlight-bg: #f0f7ff;
+  --dark-text: #202124;
+  --light-text: #5f6368;        /* Deprecated - use accessible-light-text instead */
+  --accessible-light-text: #5d5e61; /* Darker gray for 4.5:1 contrast on white */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--dark-text);
+  height: 100%;
+  width: 100%;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Header styles */
+header {
+  padding: 16px;
+  background-color: white;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+h1 {
+  font-size: 18px;
+  margin-bottom: 4px;
+  color: var(--primary-color);
+}
+
+header p {
+  color: var(--accessible-light-text);
+  margin-bottom: 12px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.primary-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.primary-btn:hover {
+  background-color: var(--hover-color);
+}
+
+.secondary-btn {
+  background-color: white;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background-color: var(--highlight-bg);
+}
+
+.status {
+  color: var(--accessible-light-text);
+  font-size: 14px;
+}
+
+/* Main content */
+main {
+  flex-grow: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.summary {
+  padding: 16px;
+  background-color: white;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hidden {
+  display: none;
+}
+
+.summary h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 16px;
+}
+
+.stat-item {
+  text-align: center;
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--accessible-light-text);
+}
+
+/* Style for stat numbers with high contrast */
+.pass-color {
+  color: var(--pass-color);
+  font-weight: bold; /* Make bold to improve readability */
+}
+.fail-color {
+  color: var(--fail-color);
+  font-weight: bold; /* Make bold to improve readability */
+}
+.warn-color {
+  color: var(--warn-color);
+  font-weight: bold; /* Make bold to improve readability */
+}
+
+/* Add better focus styles for accessibility */
+.tab-btn:focus,
+.primary-btn:focus,
+.secondary-btn:focus,
+.close-btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  background-color: white;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--accessible-light-text);
+  position: relative;
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--primary-color);
+}
+
+.tab-content {
+  display: none;
+  flex-grow: 1;
+  overflow: auto;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Issue list */
+.issue-list {
+  padding: 8px;
+}
+
+.issue-item {
+  padding: 12px;
+  border-radius: 4px;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.issue-item:hover {
+  background-color: var(--highlight-bg);
+}
+
+.issue-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.issue-item.selected {
+  border-color: var(--primary-color);
+  background-color: var(--highlight-bg);
+  /* Add a strong red outline with white borders */
+  box-shadow: 0 0 0 2px #8B0000;
+  outline: 2px solid white;
+  outline-offset: 2px;
+  position: relative;
+}
+
+/* Add white inner border for selected items */
+.issue-item.selected::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: inset 0 0 0 2px white;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Add keyboard focus styles for issue items */
+.issue-item:focus {
+  outline: 2px solid #8B0000;
+  outline-offset: 2px;
+  position: relative;
+  box-shadow: 0 0 0 4px white;
+}
+
+/* White inner border for focus state */
+.issue-item:focus::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: inset 0 0 0 2px white;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.issue-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-fail {
+  background-color: var(--fail-color);
+}
+
+.status-warn {
+  background-color: var(--warn-color);
+}
+
+.status-pass {
+  background-color: var(--pass-color);
+}
+
+.issue-description {
+  color: var(--accessible-light-text);
+  font-size: 13px;
+}
+
+.issue-element {
+  font-family: monospace;
+  color: var(--primary-color);
+  font-size: 12px;
+  margin-top: 4px;
+  word-break: break-all;
+}
+
+.empty-message {
+  text-align: center;
+  color: var(--accessible-light-text);
+  padding: 24px;
+}
+
+/* Details panel */
+.details-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 400px; /* Initial width, will be adjustable */
+  min-width: 250px; /* Minimum width to ensure content remains usable */
+  max-width: 80%; /* Maximum width as percentage of viewport */
+  background-color: white;
+  border-left: 1px solid var(--border-color);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.details-panel.visible {
+  transform: translateX(0);
+}
+
+/* Resize handle */
+.resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background-color: transparent;
+  cursor: ew-resize;
+  z-index: 1001;
+}
+
+/* Visual indicator when hovering over resize handle */
+.resize-handle:hover,
+.resize-handle.resizing {
+  background-color: var(--primary-color);
+  opacity: 0.3;
+}
+
+/* Add a focus style for keyboard accessibility */
+.resize-handle:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 0;
+  background-color: var(--primary-color);
+  opacity: 0.3;
+}
+
+.details-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.details-header h3 {
+  font-size: 16px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--accessible-light-text);
+}
+
+.details-content {
+  flex-grow: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.details-section {
+  margin-bottom: 24px;
+}
+
+.details-section h4 {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--accessible-light-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+pre {
+  background-color: var(--bg-color);
+  color: #202124; /* Ensure code text has sufficient contrast */
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.4;
+  max-height: 200px;
+}
+
+.details-actions {
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Debug section */
+.debug-section {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+}
+
+.debug-section h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.debug-section div {
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+
+.debug-section pre {
+  background-color: #f0f0f0;
+  padding: 5px;
+  border-radius: 3px;
+  max-height: 100px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.debug-section code {
+  font-family: monospace;
+  word-break: break-all;
+  background-color: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 90%;
+}

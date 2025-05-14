@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!--
+HTML GPL License Header
+-----------------------
+Carnforth Accessible Name Tester
+Copyright (C) 2025 Bob Dodd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carnforth Accessible Name Tester</title>
+  <link rel="stylesheet" href="../css/panel.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Carnforth Accessible Name Tester</h1>
+      <p>Test for accessible name violations in the current page</p>
+      <div class="controls">
+        <button id="run-test-btn" class="primary-btn">Run Test</button>
+        <div id="status" class="status"></div>
+      </div>
+    </header>
+
+    <main>
+      <div class="summary hidden" id="summary-section">
+        <h2>Test Results Summary</h2>
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-number" id="total-count">0</div>
+            <div class="stat-label">Total Elements</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number fail-color" id="fail-count">0</div>
+            <div class="stat-label">Failures</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number warn-color" id="warn-count">0</div>
+            <div class="stat-label">Warnings</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number pass-color" id="pass-count">0</div>
+            <div class="stat-label">Passing</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="failures">Failures</button>
+        <button class="tab-btn" data-tab="warnings">Warnings</button>
+        <button class="tab-btn" data-tab="all">All Elements</button>
+      </div>
+
+      <div class="tab-content active" id="failures-tab">
+        <div class="issue-list" id="failures-list">
+          <div class="empty-message">No failures found</div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="warnings-tab">
+        <div class="issue-list" id="warnings-list">
+          <div class="empty-message">No warnings found</div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="all-tab">
+        <div class="issue-list" id="all-list">
+          <div class="empty-message">Run the test to see results</div>
+        </div>
+      </div>
+    </main>
+
+    <div id="details-panel" class="details-panel hidden">
+      <div id="resize-handle" class="resize-handle"></div>
+      <div class="details-header">
+        <h3>Element Details</h3>
+        <button class="close-btn" id="close-details">×</button>
+      </div>
+      <div class="details-content">
+        <div class="details-section">
+          <h4>Element Info</h4>
+          <div id="element-info"></div>
+        </div>
+        <div class="details-section">
+          <h4>Accessible Name</h4>
+          <div id="accessible-name"></div>
+        </div>
+        <div class="details-section">
+          <h4>Issue Details</h4>
+          <div id="issue-details"></div>
+        </div>
+        <div class="details-section">
+          <h4>HTML</h4>
+          <pre id="element-html"></pre>
+        </div>
+      </div>
+      <div class="details-actions">
+        <button id="inspect-element" class="secondary-btn">Inspect in Elements Panel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/panel.js"></script>
+</body>
+</html>

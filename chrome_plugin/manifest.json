@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Carnforth Accessible Name Tester",
+  "version": "1.0.0",
+  "description": "A DevTools extension for testing accessible names on web pages, based on the Carnforth project",
+  "author": "Bob Dodd",
+  "license": "GPL-3.0",
+  "homepage_url": "https://github.com/bobdodd/CarnforthGPL",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Carnforth Accessible Name Tester"
+  },
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "devtools_page": "devtools_page/devtools.html"
+}
