@@ -31,7 +31,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       <h1>Carnforth Accessible Name Tester</h1>
       <p>Test for accessible name violations in the current page</p>
       <div class="controls">
-        <button id="run-test-btn" class="primary-btn">Run Test</button>
+        <div id="run-test-btn" class="primary-btn" role="button" tabindex="0" aria-label="Run accessibility test">Run Test</div>
         <div id="status" class="status"></div>
       </div>
     </header>
@@ -57,59 +57,69 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             <div class="stat-label">Passing</div>
           </div>
         </div>
+        <div id="results-live-region" class="visually-hidden" aria-live="assertive" role="status" aria-atomic="true"></div>
       </div>
 
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="failures">Failures</button>
-        <button class="tab-btn" data-tab="warnings">Warnings</button>
-        <button class="tab-btn" data-tab="all">All Elements</button>
-      </div>
-
-      <div class="tab-content active" id="failures-tab">
-        <div class="issue-list" id="failures-list">
-          <div class="empty-message">No failures found</div>
+      <div class="tabbed-interface">
+        <div role="tablist" aria-label="Test results categories" class="tabs">
+          <button id="tab-failures" class="tab-btn active" role="tab" aria-selected="true" 
+                  aria-controls="failures-panel" data-tab="failures">Failures</button>
+          <button id="tab-warnings" class="tab-btn" role="tab" aria-selected="false" 
+                  aria-controls="warnings-panel" data-tab="warnings">Warnings</button>
+          <button id="tab-all" class="tab-btn" role="tab" aria-selected="false" 
+                  aria-controls="all-panel" data-tab="all">All Elements</button>
         </div>
-      </div>
 
-      <div class="tab-content" id="warnings-tab">
-        <div class="issue-list" id="warnings-list">
-          <div class="empty-message">No warnings found</div>
+        <div role="tabpanel" id="failures-panel" aria-labelledby="tab-failures" class="tab-content active">
+          <h2 class="visually-hidden">Failures List</h2>
+          <ul class="issue-list" id="failures-list" aria-label="Accessibility failures">
+            <li class="empty-message">No failures found</li>
+          </ul>
         </div>
-      </div>
 
-      <div class="tab-content" id="all-tab">
-        <div class="issue-list" id="all-list">
-          <div class="empty-message">Run the test to see results</div>
+        <div role="tabpanel" id="warnings-panel" aria-labelledby="tab-warnings" class="tab-content" hidden>
+          <h2 class="visually-hidden">Warnings List</h2>
+          <ul class="issue-list" id="warnings-list" aria-label="Accessibility warnings">
+            <li class="empty-message">No warnings found</li>
+          </ul>
+        </div>
+
+        <div role="tabpanel" id="all-panel" aria-labelledby="tab-all" class="tab-content" hidden>
+          <h2 class="visually-hidden">All Elements List</h2>
+          <ul class="issue-list" id="all-list" aria-label="All tested elements">
+            <li class="empty-message">Run the test to see results</li>
+          </ul>
         </div>
       </div>
     </main>
 
-    <div id="details-panel" class="details-panel hidden">
+    <div id="details-panel" class="details-panel hidden" role="dialog" aria-modal="true" aria-labelledby="details-heading">
       <div id="resize-handle" class="resize-handle"></div>
       <div class="details-header">
-        <h3>Element Details</h3>
-        <button class="close-btn" id="close-details">×</button>
+        <h2 id="details-heading">Element Details</h2>
+        <button class="close-btn" id="close-details" aria-label="Close details panel">×</button>
       </div>
       <div class="details-content">
         <div class="details-section">
-          <h4>Element Info</h4>
+          <h3>Element Info</h3>
           <div id="element-info"></div>
         </div>
         <div class="details-section">
-          <h4>Accessible Name</h4>
+          <h3>Accessible Name</h3>
           <div id="accessible-name"></div>
         </div>
         <div class="details-section">
-          <h4>Issue Details</h4>
+          <h3>Issue Details</h3>
           <div id="issue-details"></div>
         </div>
         <div class="details-section">
-          <h4>HTML</h4>
-          <pre id="element-html"></pre>
+          <h3>HTML</h3>
+          <div id="element-html" class="code-block"></div>
         </div>
       </div>
       <div class="details-actions">
         <button id="inspect-element" class="secondary-btn">Inspect in Elements Panel</button>
+        <div id="elements-panel-announcement" class="visually-hidden" aria-live="assertive"></div>
       </div>
     </div>
   </div>

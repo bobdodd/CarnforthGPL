@@ -35,6 +35,8 @@ const totalCountEl = document.getElementById('total-count');
 const failCountEl = document.getElementById('fail-count');
 const warnCountEl = document.getElementById('warn-count');
 const passCountEl = document.getElementById('pass-count');
+const resultsLiveRegion = document.getElementById('results-live-region');
+const elementsPanelAnnouncement = document.getElementById('elements-panel-announcement');
 const failuresList = document.getElementById('failures-list');
 const warningsList = document.getElementById('warnings-list');
 const allList = document.getElementById('all-list');
@@ -46,7 +48,8 @@ const closeDetailsBtn = document.getElementById('close-details');
 const elementInfoEl = document.getElementById('element-info');
 const accessibleNameEl = document.getElementById('accessible-name');
 const issueDetailsEl = document.getElementById('issue-details');
-const elementHtmlEl = document.getElementById('element-html');
+// Note: elementHtmlEl will be replaced by a div during operation
+let elementHtmlEl = document.getElementById('element-html');
 const inspectElementBtn = document.getElementById('inspect-element');
 
 // Store the test results for reference
@@ -60,30 +63,70 @@ let startX, startWidth;
 // Initialize the panel
 function init() {
   // Set up event listeners
+  // Handle both click and keyboard events for the Run Test button
   runTestBtn.addEventListener('click', runTest);
+  runTestBtn.addEventListener('keydown', (event) => {
+    // Execute on Enter or Space key press
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      runTest();
+    }
+  });
+  
   closeDetailsBtn.addEventListener('click', hideDetailsPanel);
   inspectElementBtn.addEventListener('click', inspectElementInDevTools);
 
   // Set up resize handle functionality
   setupResizeHandling();
 
-  // Tab switching functionality
+  // Tab switching functionality following WAI-ARIA Authoring Practices
   tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      // Remove active class from all buttons and content
-      tabButtons.forEach(btn => btn.classList.remove('active'));
-      tabContents.forEach(content => content.classList.remove('active'));
-
-      // Add active class to clicked button and corresponding content
-      button.classList.add('active');
-      const tabId = button.dataset.tab;
-      document.getElementById(`${tabId}-tab`).classList.add('active');
-
-      // Close the details panel if it's open
-      hideDetailsPanel();
-
-      // Also remove any highlight on the page
-      removeHighlightFromPage();
+    // Handle click events for mouse users
+    button.addEventListener('click', (event) => {
+      activateTab(button);
+    });
+    
+    // Handle keyboard events for keyboard navigation
+    button.addEventListener('keydown', (event) => {
+      const tabList = button.parentElement;
+      const tabs = Array.from(tabList.querySelectorAll('[role="tab"]'));
+      const index = tabs.indexOf(button);
+      
+      // Determine which key was pressed and handle accordingly
+      switch (event.key) {
+        case 'ArrowLeft':
+          // Move to the previous tab, or wrap to the end
+          event.preventDefault();
+          const prevIndex = index === 0 ? tabs.length - 1 : index - 1;
+          tabs[prevIndex].focus();
+          activateTab(tabs[prevIndex]);
+          break;
+        case 'ArrowRight':
+          // Move to the next tab, or wrap to the beginning
+          event.preventDefault();
+          const nextIndex = index === tabs.length - 1 ? 0 : index + 1;
+          tabs[nextIndex].focus();
+          activateTab(tabs[nextIndex]);
+          break;
+        case 'Home':
+          // Move to the first tab
+          event.preventDefault();
+          tabs[0].focus();
+          activateTab(tabs[0]);
+          break;
+        case 'End':
+          // Move to the last tab
+          event.preventDefault();
+          tabs[tabs.length - 1].focus();
+          activateTab(tabs[tabs.length - 1]);
+          break;
+        case 'Enter':
+        case ' ':
+          // Activate the current tab with Enter or Space
+          event.preventDefault();
+          activateTab(button);
+          break;
+      }
     });
   });
 
@@ -190,14 +233,17 @@ function setupResizeHandling() {
 
 // Run the accessibility test
 function runTest() {
-  // Update UI state
-  runTestBtn.disabled = true;
+  // Update UI state for the div-based button
+  runTestBtn.setAttribute('aria-disabled', 'true');
+  runTestBtn.classList.add('disabled');
+  // Set tabindex to -1 to prevent focus while disabled
+  runTestBtn.setAttribute('tabindex', '-1');
   statusEl.textContent = "Running test...";
 
   // Clear previous results
-  failuresList.innerHTML = '<div class="empty-message">Analyzing page...</div>';
-  warningsList.innerHTML = '<div class="empty-message">Analyzing page...</div>';
-  allList.innerHTML = '<div class="empty-message">Analyzing page...</div>';
+  failuresList.innerHTML = '<li class="empty-message">Analyzing page...</li>';
+  warningsList.innerHTML = '<li class="empty-message">Analyzing page...</li>';
+  allList.innerHTML = '<li class="empty-message">Analyzing page...</li>';
 
   // Clear any selected element and remove any existing highlight
   selectedElement = null;
@@ -218,8 +264,11 @@ function runTest() {
 
 // Process the test results
 function processTestResults(results) {
-  // Reset UI state
-  runTestBtn.disabled = false;
+  // Reset UI state for the div-based button
+  runTestBtn.removeAttribute('aria-disabled');
+  runTestBtn.classList.remove('disabled');
+  // Restore focus ability
+  runTestBtn.setAttribute('tabindex', '0');
   
   if (!results || results.error) {
     statusEl.textContent = "Error: " + (results?.error || "Unknown error");
@@ -248,13 +297,27 @@ function processTestResults(results) {
   
   // Update status
   const totalIssues = counts.fail + counts.warn;
+  let statusMessage = "";
+  
   if (totalIssues > 0) {
-    statusEl.textContent = `Found ${totalIssues} accessibility issues (${counts.fail} errors, ${counts.warn} warnings)`;
+    statusMessage = `Found ${totalIssues} accessibility issues (${counts.fail} errors, ${counts.warn} warnings)`;
+    statusEl.textContent = statusMessage;
     statusEl.style.color = counts.fail > 0 ? "var(--fail-color)" : "var(--warn-color)";
   } else {
-    statusEl.textContent = "No accessibility issues found";
+    statusMessage = "No accessibility issues found";
+    statusEl.textContent = statusMessage;
     statusEl.style.color = "var(--pass-color)";
   }
+  
+  // Clear and update the ARIA live region to ensure it's announced
+  // First empty it to ensure change is detected
+  resultsLiveRegion.textContent = '';
+  
+  // Force browser to process the empty state
+  setTimeout(() => {
+    // Use a clear, concise message that prioritizes the most important information first
+    resultsLiveRegion.textContent = `Test complete. ${counts.fail} failures, ${counts.warn} warnings found out of ${counts.total} elements tested.`;
+  }, 50);
   
   // Populate result lists
   populateResultsList(failuresList, results.elements.filter(el => el.result === "fail"));
@@ -263,38 +326,54 @@ function processTestResults(results) {
   
   // Switch to the failures tab if there are any failures
   if (counts.fail > 0) {
-    tabButtons.forEach(btn => btn.classList.remove('active'));
-    tabContents.forEach(content => content.classList.remove('active'));
-    
-    document.querySelector('[data-tab="failures"]').classList.add('active');
-    document.getElementById('failures-tab').classList.add('active');
+    // Use our new activateTab function
+    const failuresTab = document.getElementById('tab-failures');
+    activateTab(failuresTab);
   }
 }
 
 // Populate a results list with elements
 function populateResultsList(listElement, elements) {
   if (elements.length === 0) {
-    listElement.innerHTML = '<div class="empty-message">No issues found</div>';
+    listElement.innerHTML = '<li class="empty-message">No issues found</li>';
     return;
   }
   
   listElement.innerHTML = '';
   
   elements.forEach((element, index) => {
-    const item = document.createElement('div');
+    const item = document.createElement('li');
     item.className = `issue-item ${element.result}`;
     item.dataset.index = index;
+    item.setAttribute('role', 'button');
+    item.setAttribute('tabindex', '0'); // Make it keyboard focusable
     
     const statusClass = element.result === "fail" ? "status-fail" : 
                         element.result === "warn" ? "status-warn" : "status-pass";
     
+    // Generate unique IDs for various elements
+    const issueTypeId = `issue-type-${element.result}-${index}`;
+    const issueTitleId = `issue-title-${element.result}-${index}`;
+    const selectorDescId = `selector-desc-${element.result}-${index}`;
+    
+    // Set a clear accessible name using aria-label
+    const accessibleName = `${element.result === "fail" ? "Failure" : element.result === "warn" ? "Warning" : "Pass"}: ${getElementDescription(element).replace(/<[^>]*>/g, '')}. Click to open details`;
+    item.setAttribute('aria-label', accessibleName);
+    
+    // Create an ID for the description section
+    const descriptionId = `issue-desc-${element.result}-${index}`;
+    const elementSelectorId = `element-selector-${element.result}-${index}`;
+    
+    // Use aria-describedby to ensure the description is read after the label
+    item.setAttribute('aria-describedby', `${descriptionId} ${elementSelectorId}`);
+    
     item.innerHTML = `
-      <div class="issue-title">
-        <span class="issue-status ${statusClass}"></span>
+      <h3 class="issue-title">
+        <span class="issue-status ${statusClass}" aria-hidden="true"></span>
         ${getElementDescription(element)}
-      </div>
-      <div class="issue-description">${element.description || 'No description'}</div>
-      <div class="issue-element">${element.selector}</div>
+      </h3>
+      <div id="${descriptionId}" class="issue-description">${element.description || 'No description'}</div>
+      <div id="${elementSelectorId}" class="issue-element">${element.selector}</div>
     `;
     
     // Helper function to select an item and handle all operations in a consistent order
@@ -354,18 +433,36 @@ function populateResultsList(listElement, elements) {
     // Make issue item focusable
     item.tabIndex = 0;
 
+    // Function to handle selection
+    const selectItem = () => {
+      selectAndHighlightItem(element, item);
+    };
+    
     // Add click handler for mouse navigation
-    item.addEventListener('click', () => {
-      selectAndHighlightItem(element, item);
+    item.addEventListener('click', selectItem);
+    
+    // Add keyboard support for accessibility
+    item.addEventListener('keydown', (event) => {
+      // Handle Enter and Space key presses
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectItem();
+      }
     });
 
-    // Add focus handler for keyboard navigation
+    // Add focus styling but don't select on focus
     item.addEventListener('focus', () => {
-      selectAndHighlightItem(element, item);
+      // Apply focus styling only without triggering selection
+      document.querySelectorAll('.issue-item').forEach(el => {
+        el.classList.remove('selected');
+      });
+      item.classList.add('focused');
     });
 
-    // Simplify blur handler - let click/focus handle state
-    item.addEventListener('blur', () => {});
+    // Remove focus styling on blur
+    item.addEventListener('blur', () => {
+      item.classList.remove('focused');
+    });
 
     listElement.appendChild(item);
   });
@@ -409,7 +506,17 @@ function getElementDescription(element) {
 }
 
 // Show the details panel for an element
+// Store a reference to the element that opened the dialog
+let lastFocusedElement = null;
+
+// Store the focusable elements within the dialog
+let focusableElements = [];
+
 function showElementDetails(element) {
+  // Store the element that was focused before opening the dialog
+  lastFocusedElement = document.activeElement;
+  
+  // Update the selected element
   selectedElement = element;
 
   // Populate details
@@ -431,17 +538,87 @@ function showElementDetails(element) {
 
   // Debug section removed as requested
 
-  // Set the HTML
-  elementHtmlEl.textContent = element.outerHTML || 'HTML not available';
+  // Display syntax highlighted HTML in the code block
+  const syntaxHighlightedHTML = formatHTML(element.outerHTML || 'HTML not available');
+  
+  // Set content and attributes directly without replacing the element
+  elementHtmlEl.innerHTML = syntaxHighlightedHTML;
+  elementHtmlEl.setAttribute('aria-label', 'HTML code example, non-interactive');
+  elementHtmlEl.setAttribute('aria-hidden', 'true'); // Hide from screen readers since it's just example code
 
   // Show the panel
+  detailsPanel.classList.remove('hidden');
   detailsPanel.classList.add('visible');
+  
+  // Find all focusable elements within the dialog
+  focusableElements = Array.from(detailsPanel.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  ));
+  
+  // Set focus on the close button
+  setTimeout(() => {
+    closeDetailsBtn.focus();
+  }, 50);
+  
+  // Add keyboard event listener for trapping focus
+  document.addEventListener('keydown', trapFocus);
+}
+
+// Trap focus within the modal dialog
+function trapFocus(event) {
+  // Check for the Escape key to close the dialog
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    hideDetailsPanel();
+    return;
+  }
+  
+  // Only trap focus if the dialog is visible
+  if (!detailsPanel.classList.contains('visible')) {
+    return;
+  }
+  
+  // Check for Tab key to manage focus
+  if (event.key === 'Tab') {
+    // If there are no focusable elements, prevent tabbing
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    
+    // Get the first and last focusable elements
+    const firstFocusableElement = focusableElements[0];
+    const lastFocusableElement = focusableElements[focusableElements.length - 1];
+    
+    // If shift+tab and focus is on first element, move to last element
+    if (event.shiftKey && document.activeElement === firstFocusableElement) {
+      event.preventDefault();
+      lastFocusableElement.focus();
+    } 
+    // If tab and focus is on last element, move to first element
+    else if (!event.shiftKey && document.activeElement === lastFocusableElement) {
+      event.preventDefault();
+      firstFocusableElement.focus();
+    }
+  }
 }
 
 // Hide the details panel
 function hideDetailsPanel() {
+  // Remove the dialog from view
   detailsPanel.classList.remove('visible');
+  detailsPanel.classList.add('hidden');
+  
+  // Remove the keyboard event listener
+  document.removeEventListener('keydown', trapFocus);
+  
+  // Clear the selected element
   selectedElement = null;
+  
+  // Restore focus to the element that opened the dialog
+  if (lastFocusedElement) {
+    lastFocusedElement.focus();
+  }
 }
 
 // Track the currently highlighted element
@@ -527,15 +704,55 @@ function removeHighlightFromPage() {
 function inspectElementInDevTools() {
   if (!selectedElement) return;
   
+  // Announce to screen readers that we're moving to the Elements panel
+  elementsPanelAnnouncement.textContent = "Moving to Elements panel to inspect the selected element";
+  
   // Use the inspect function to inspect the element
   chrome.devtools.inspectedWindow.eval(
     `inspect(document.querySelector('${selectedElement.selector.replace(/'/g, "\\'")}'))`,
     function(result, isException) {
       if (isException) {
         console.error('Error inspecting element:', isException);
+        elementsPanelAnnouncement.textContent = "Error: Could not inspect element in Elements panel";
+      } else {
+        // Keep announcement visible until user takes action
+        // No timeout - content will remain until next user interaction
       }
     }
   );
+}
+
+// Function to activate a tab and show its panel
+function activateTab(tabElement) {
+  // Get all tabs and panels
+  const tabs = Array.from(tabElement.parentElement.querySelectorAll('[role="tab"]'));
+  const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+  
+  // Deactivate all tabs and hide all panels
+  tabs.forEach(tab => {
+    tab.setAttribute('aria-selected', 'false');
+    tab.classList.remove('active');
+  });
+  
+  panels.forEach(panel => {
+    panel.classList.remove('active');
+    panel.hidden = true;
+  });
+  
+  // Activate selected tab and show its panel
+  tabElement.setAttribute('aria-selected', 'true');
+  tabElement.classList.add('active');
+  
+  const tabId = tabElement.dataset.tab;
+  const panel = document.getElementById(`${tabId}-panel`);
+  panel.classList.add('active');
+  panel.hidden = false;
+  
+  // Close the details panel if it's open
+  hideDetailsPanel();
+  
+  // Also remove any highlight on the page
+  removeHighlightFromPage();
 }
 
 // Helper function to truncate strings
@@ -543,6 +760,28 @@ function truncateString(str, maxLength) {
   if (!str) return '';
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength) + '...';
+}
+
+// Function to format HTML with syntax highlighting
+function formatHTML(html) {
+  if (!html) return '';
+  
+  // Replace special characters
+  let formatted = html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  
+  // Highlight tags
+  formatted = formatted.replace(/&lt;(\/?[a-zA-Z][a-zA-Z0-9:._-]*)(\s[^&]*)?&gt;/g, 
+    '<span style="color:#0000cc;">&lt;$1</span><span style="color:#8B2252;">$2</span><span style="color:#0000cc;">&gt;</span>');
+  
+  // Highlight attributes
+  formatted = formatted.replace(/(\s+)([a-zA-Z][a-zA-Z0-9:._-]*)(=)(&quot;[^&]*&quot;)/g, 
+    '$1<span style="color:#994500;">$2</span><span style="color:#000000;">$3</span><span style="color:#1A1AA6;">$4</span>');
+  
+  return formatted;
 }
 
 // Initialize the panel

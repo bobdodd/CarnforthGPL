@@ -44,7 +44,7 @@
 
 body, html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-  font-size: 14px;
+  font-size: 1rem; /* Base font size - 16px in most browsers */
   line-height: 1.5;
   color: var(--dark-text);
   height: 100%;
@@ -67,7 +67,7 @@ header {
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 1.25rem; /* 20px relative to base 16px */
   margin-bottom: 4px;
   color: var(--primary-color);
 }
@@ -92,10 +92,35 @@ header p {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  display: inline-block; /* Important for div-based buttons */
+  text-align: center; /* Center text like a normal button */
 }
 
 .primary-btn:hover {
   background-color: var(--hover-color);
+}
+
+/* Style for disabled button state */
+.primary-btn.disabled,
+.primary-btn[aria-disabled="true"] {
+  background-color: #999999;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Enhanced focus styling for Run Test button - completely invert colors on focus */
+#run-test-btn:focus {
+  outline: 3px solid #0057e7; /* High contrast blue */
+  outline-offset: 3px; /* Increased from 2px for more prominence */
+  /* White separator for better visibility in high contrast mode */
+  box-shadow: 0 0 0 3px #0057e7, 0 0 0 6px white, 0 0 0 8px #0057e7;
+  /* Invert text and background colors */
+  background-color: white;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  /* Add text decoration for additional visual indicator */
+  text-decoration: underline;
+  font-weight: bold;
 }
 
 .secondary-btn {
@@ -115,7 +140,7 @@ header p {
 
 .status {
   color: var(--accessible-light-text);
-  font-size: 14px;
+  font-size: 1rem; /* Minimum 16px for readability */
 }
 
 /* Main content */
@@ -137,7 +162,7 @@ main {
 }
 
 .summary h2 {
-  font-size: 16px;
+  font-size: 1rem; /* 16px */
   margin-bottom: 12px;
 }
 
@@ -153,13 +178,13 @@ main {
 }
 
 .stat-number {
-  font-size: 24px;
+  font-size: 1.5rem; /* 24px */
   font-weight: bold;
   margin-bottom: 4px;
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 1rem; /* Minimum 16px for readability */
   color: var(--accessible-light-text);
 }
 
@@ -178,12 +203,28 @@ main {
 }
 
 /* Add better focus styles for accessibility */
-.tab-btn:focus,
-.primary-btn:focus,
-.secondary-btn:focus,
-.close-btn:focus {
-  outline: 2px solid var(--primary-color);
+/* Common focus style for all interactive elements - ensures 3:1 contrast ratio */
+*:focus {
+  /* Use a high-contrast blue that meets 3:1 contrast on both light and dark backgrounds */
+  outline: 3px solid #0057e7; /* High contrast blue */
   outline-offset: 2px;
+  /* For high contrast mode support */
+  box-shadow: 0 0 0 3px #0057e7, 0 0 0 5px white; 
+}
+
+/* Specific focus styles for controls - more dramatic with inverted colors */
+.tab-btn:focus,
+.secondary-btn:focus,
+.close-btn:focus,
+button:focus,
+[role="button"]:focus:not(#run-test-btn) { /* Exclude Run Test button as it has its own style */
+  outline: 3px solid #0057e7; /* High contrast blue */
+  outline-offset: 3px; /* Increased from 2px */
+  /* Double outline for maximum visibility */
+  box-shadow: 0 0 0 3px #0057e7, 0 0 0 6px white, 0 0 0 8px #0057e7;
+  /* Invert colors for dramatic effect */
+  filter: invert(0.1); /* Subtle inversion */
+  text-decoration: underline; /* Additional visual indicator */
 }
 
 /* Tabs */
@@ -279,15 +320,27 @@ main {
 }
 
 /* Add keyboard focus styles for issue items */
-.issue-item:focus {
-  outline: 2px solid #8B0000;
+/* Apply focus indicators without opening the details panel */
+.issue-item.focused {
+  outline: 3px solid #0057e7; /* High contrast blue for 3:1 ratio */
   outline-offset: 2px;
   position: relative;
-  box-shadow: 0 0 0 4px white;
+  
+  /* High contrast mode support */
+  box-shadow: 0 0 0 3px #0057e7, 0 0 0 5px white;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+/* Focus style for keyboard navigation */
+.issue-item:focus {
+  outline: 3px solid #0057e7; /* High contrast blue for 3:1 ratio */
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px #0057e7, 0 0 0 5px white;
 }
 
 /* White inner border for focus state */
-.issue-item:focus::after {
+.issue-item.focused::after {
   content: '';
   position: absolute;
   top: 0;
@@ -301,32 +354,68 @@ main {
 
 .issue-status {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  border: 1px solid #000; /* Always visible border in high contrast mode */
+  margin-right: 6px;
+  position: relative;
 }
 
+/* Add an X for failures - visible in high contrast */
 .status-fail {
   background-color: var(--fail-color);
 }
 
+.status-fail::before {
+  content: "×";
+  position: absolute;
+  top: -2px;
+  left: 2px;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem; /* Minimum 16px for readability */
+}
+
+/* Add a ! for warnings - visible in high contrast */
 .status-warn {
   background-color: var(--warn-color);
 }
 
+.status-warn::before {
+  content: "!";
+  position: absolute;
+  top: -2px;
+  left: 4px;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem; /* Minimum 16px for readability */
+}
+
+/* Add a checkmark for pass - visible in high contrast */
 .status-pass {
   background-color: var(--pass-color);
 }
 
+.status-pass::before {
+  content: "✓";
+  position: absolute;
+  top: -2px;
+  left: 2px;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem; /* Minimum 16px for readability */
+}
+
 .issue-description {
   color: var(--accessible-light-text);
-  font-size: 13px;
+  font-size: 1rem; /* Minimum 16px for readability */
 }
 
 .issue-element {
   font-family: monospace;
   color: var(--primary-color);
-  font-size: 12px;
+  font-size: 1rem; /* Minimum 16px for readability */
   margin-top: 4px;
   word-break: break-all;
 }
@@ -382,10 +471,10 @@ main {
 
 /* Add a focus style for keyboard accessibility */
 .resize-handle:focus {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 0;
-  background-color: var(--primary-color);
-  opacity: 0.3;
+  outline: 3px solid #0057e7; /* High contrast blue for 3:1 ratio */
+  outline-offset: 2px;
+  background-color: #0057e7;
+  opacity: 0.5; /* Increased from 0.3 for better contrast */
 }
 
 .details-header {
@@ -397,13 +486,13 @@ main {
 }
 
 .details-header h3 {
-  font-size: 16px;
+  font-size: 1rem; /* 16px */
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 1.5rem; /* 24px */
   cursor: pointer;
   color: var(--accessible-light-text);
 }
@@ -419,23 +508,33 @@ main {
 }
 
 .details-section h4 {
-  font-size: 14px;
+  font-size: 1rem; /* Minimum 16px for readability */
   margin-bottom: 8px;
   color: var(--accessible-light-text);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-pre {
+pre, .code-block {
   background-color: var(--bg-color);
   color: #202124; /* Ensure code text has sufficient contrast */
   padding: 8px;
   border-radius: 4px;
   border: 1px solid var(--border-color);
   overflow: auto;
-  font-size: 12px;
+  font-size: 1rem; /* Minimum 16px for readability */
   line-height: 1.4;
   max-height: 200px;
+  font-family: monospace;
+  white-space: pre;
+  /* Prevent keyboard focus */
+  user-select: text; /* Still allow text selection */
+  pointer-events: auto; /* Allow mouse interaction */
+}
+
+/* Specifically prevent the code block from getting keyboard focus */
+.code-block {
+  outline: none !important; /* Never show outline */
 }
 
 .details-actions {
@@ -458,13 +557,13 @@ pre {
   margin-top: 0;
   margin-bottom: 10px;
   color: var(--primary-color);
-  font-size: 14px;
+  font-size: 1rem; /* Minimum 16px for readability */
   font-weight: bold;
 }
 
 .debug-section div {
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: 1rem; /* Minimum 16px for readability */
   line-height: 1.4;
   overflow-wrap: break-word;
 }
@@ -475,7 +574,7 @@ pre {
   border-radius: 3px;
   max-height: 100px;
   overflow: auto;
-  font-size: 11px;
+  font-size: 1rem; /* Minimum 16px for readability */
   line-height: 1.3;
 }
 
@@ -486,4 +585,17 @@ pre {
   padding: 2px 4px;
   border-radius: 3px;
   font-size: 90%;
+}
+
+/* Accessibility utility classes */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

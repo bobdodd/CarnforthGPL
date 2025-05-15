@@ -30,6 +30,27 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("Carnforth Accessible Name Tester installed");
 });
 
+// Helper function to safely send messages to tabs
+// This prevents the "Receiving end does not exist" error
+function safelySendMessage(tabId, message, callback) {
+  try {
+    chrome.tabs.sendMessage(tabId, message, response => {
+      // Check for error and handle it silently if no callback provided
+      if (chrome.runtime.lastError) {
+        console.log(`Error sending message to tab ${tabId}:`, chrome.runtime.lastError.message);
+        if (callback) callback(null);
+        return;
+      }
+      
+      // If all went well, call the callback with the response
+      if (callback) callback(response);
+    });
+  } catch (err) {
+    console.error("Error in safelySendMessage:", err);
+    if (callback) callback(null);
+  }
+}
+
 // Handle messages from the DevTools panel
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "runTest") {
@@ -45,20 +66,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const activeTab = tabs[0];
 
       // First ensure any existing highlights are removed
-      try {
-        chrome.tabs.sendMessage(
-          activeTab.id,
-          { action: "removeHighlight" },
-          () => {
-            // If there's an error (like the content script isn't loaded yet), just continue
-            if (chrome.runtime.lastError) {
-              console.log("No content script yet to remove highlights, continuing with test");
-            }
-          }
-        );
-      } catch (e) {
-        console.log("Error removing highlights before test:", e);
-      }
+      safelySendMessage(
+        activeTab.id,
+        { action: "removeHighlight" },
+        () => {
+          console.log("Removed any existing highlights or no content script loaded yet");
+        }
+      );
 
       // Execute the content script on the active tab
       chrome.scripting.executeScript(
@@ -68,13 +82,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         },
         () => {
           // After loading the content script, send a message to it to run the test
-          chrome.tabs.sendMessage(
+          safelySendMessage(
             activeTab.id,
             { action: "runAccessibilityTest" },
             (results) => {
-              if (chrome.runtime.lastError) {
-                console.error("Error running test:", chrome.runtime.lastError);
-                sendResponse({ error: "Error running test: " + chrome.runtime.lastError.message });
+              if (!results) {
+                // Handle the case where no results were returned
+                sendResponse({ error: "Error running test: Content script not available or failed to respond" });
                 return;
               }
 
@@ -106,14 +120,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Convert undefined to explicit false, and ensure boolean values are passed correctly
       const shouldScroll = message.scrollIntoView === true;
 
-      chrome.tabs.sendMessage(
+      safelySendMessage(
         activeTab.id,
         {
           action: "highlightElement",
           selector: message.selector,
           scrollIntoView: shouldScroll,
           additionalData: message.additionalData
-        }
+        },
+        null // No callback needed
       );
     });
   }
@@ -124,9 +139,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (tabs.length === 0) return;
 
       const activeTab = tabs[0];
-      chrome.tabs.sendMessage(
+      safelySendMessage(
         activeTab.id,
-        { action: "removeHighlight" }
+        { action: "removeHighlight" },
+        null // No callback needed
       );
     });
   }
@@ -137,12 +153,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (tabs.length === 0) return;
 
       const activeTab = tabs[0];
-      chrome.tabs.sendMessage(
+      safelySendMessage(
         activeTab.id,
         {
           action: "getDebugInfo",
           selector: message.selector
-        }
+        },
+        null // No callback needed - response sent via runtime.sendMessage
       );
     });
   }
@@ -172,20 +189,13 @@ chrome.runtime.onConnect.addListener(function(port) {
           const activeTab = tabs[0];
 
           // First ensure any existing highlights are removed
-          try {
-            chrome.tabs.sendMessage(
-              activeTab.id,
-              { action: "removeHighlight" },
-              () => {
-                // If there's an error (like the content script isn't loaded yet), just continue
-                if (chrome.runtime.lastError) {
-                  console.log("No content script yet to remove highlights, continuing with test");
-                }
-              }
-            );
-          } catch (e) {
-            console.log("Error removing highlights before test:", e);
-          }
+          safelySendMessage(
+            activeTab.id, 
+            { action: "removeHighlight" },
+            () => {
+              console.log("Removed any existing highlights or no content script loaded yet");
+            }
+          );
 
           // Execute the content script on the active tab
           chrome.scripting.executeScript(
@@ -204,15 +214,15 @@ chrome.runtime.onConnect.addListener(function(port) {
               }
 
               // After loading the content script, send a message to it to run the test
-              chrome.tabs.sendMessage(
+              safelySendMessage(
                 activeTab.id,
                 { action: "runAccessibilityTest" },
                 (results) => {
-                  if (chrome.runtime.lastError) {
-                    console.error("Error running test:", chrome.runtime.lastError);
+                  if (!results) {
+                    console.error("Error running test: Content script not available or failed to respond");
                     port.postMessage({
                       action: "testResults",
-                      results: { error: "Error running test: " + chrome.runtime.lastError.message }
+                      results: { error: "Error running test: Content script not available or failed to respond" }
                     });
                     return;
                   }
