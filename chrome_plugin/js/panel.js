@@ -24,8 +24,35 @@
  * This script handles the DevTools panel UI and functionality.
  */
 
-// Connect to the background script
-const port = chrome.runtime.connect({ name: "carnforthPanel" });
+// Safely access the devtools API
+let inspectedTabId = null;
+try {
+  if (window.chrome && chrome.devtools && chrome.devtools.inspectedWindow) {
+    inspectedTabId = chrome.devtools.inspectedWindow.tabId;
+  }
+} catch (e) {
+  console.error("Error accessing devtools API:", e);
+}
+
+// Connect to the background script - only with name, no tabId
+const port = chrome.runtime.connect({ 
+  name: "carnforthPanel"
+});
+
+// If we have a tab ID, send it separately after connection
+if (inspectedTabId) {
+  console.log("Have inspected tab ID:", inspectedTabId);
+  setTimeout(() => {
+    try {
+      port.postMessage({ 
+        action: "setTabId", 
+        tabId: inspectedTabId 
+      });
+    } catch (e) {
+      console.error("Error sending tabId:", e);
+    }
+  }, 500); // Increased delay for stability
+}
 
 // DOM elements
 const runTestBtn = document.getElementById('run-test-btn');
@@ -139,6 +166,12 @@ function init() {
     if (message.action === "debugInfo") {
       updateDebugInfo(message.debugData);
     }
+    
+    // Handle navigation events
+    if (message.action === "pageNavigated") {
+      // Reset the panel when the page navigates
+      handlePageNavigation(message.url);
+    }
   });
 
   // Also listen for runtime messages for debug info
@@ -148,6 +181,24 @@ function init() {
     }
     return true;
   });
+  
+  // Expose the onPageNavigated function for the devtools page
+  window.onPageNavigated = (url) => {
+    handlePageNavigation(url);
+  };
+  
+  // Function to store the tab ID received from devtools page
+  window.setInspectedTabId = (tabId) => {
+    // Store the tab ID locally
+    inspectedTabId = tabId;
+    
+    // Send a message to the background script with the tab ID
+    try {
+      port.postMessage({ action: "setTabId", tabId: tabId });
+    } catch (e) {
+      console.error("Error in setInspectedTabId:", e);
+    }
+  };
 }
 
 // Update debug information in the panel - no longer needed
@@ -233,6 +284,8 @@ function setupResizeHandling() {
 
 // Run the accessibility test
 function runTest() {
+  console.log("Run test button clicked");
+  
   // Update UI state for the div-based button
   runTestBtn.setAttribute('aria-disabled', 'true');
   runTestBtn.classList.add('disabled');
@@ -257,8 +310,27 @@ function runTest() {
 
   // Wait briefly to ensure cleanup has time to complete
   setTimeout(() => {
-    // Request test to be run
-    port.postMessage({ action: "runTest" });
+    try {
+      // Request test to be run - include tabId if we have it stored
+      const message = { action: "runTest" };
+      
+      // Use the stored inspectedTabId if available
+      if (inspectedTabId) {
+        message.tabId = inspectedTabId;
+      }
+      
+      console.log("Sending runTest message:", message);
+      port.postMessage(message);
+    } catch (error) {
+      console.error("Error sending runTest message:", error);
+      // Handle error, display a message to the user
+      statusEl.textContent = "Error starting test: " + error.message;
+      
+      // Re-enable the run button
+      runTestBtn.removeAttribute('aria-disabled');
+      runTestBtn.classList.remove('disabled');
+      runTestBtn.setAttribute('tabindex', '0');
+    }
   }, 100);
 }
 
@@ -505,7 +577,6 @@ function getElementDescription(element) {
   }
 }
 
-// Show the details panel for an element
 // Store a reference to the element that opened the dialog
 let lastFocusedElement = null;
 
@@ -676,12 +747,16 @@ function highlightElementOnPage(element, scrollIntoView = true) {
 
   // Send the highlight message
   // We now always use scrollIntoView: false because scrolling is handled separately
-  chrome.runtime.sendMessage({
-    action: "highlightElement",
-    selector: selector,
-    scrollIntoView: false,  // Always false since scrolling is handled directly in panel.js
-    additionalData: additionalData
-  });
+  try {
+    chrome.runtime.sendMessage({
+      action: "highlightElement",
+      selector: selector,
+      scrollIntoView: false,  // Always false since scrolling is handled directly in panel.js
+      additionalData: additionalData
+    });
+  } catch (e) {
+    console.error("Error sending highlight message:", e);
+  }
 
   // Reset the flag after highlighting completes
   setTimeout(() => {
@@ -695,9 +770,13 @@ function removeHighlightFromPage() {
   currentlyHighlighted = null;
 
   // Send message to remove highlight
-  chrome.runtime.sendMessage({
-    action: "removeHighlight"
-  });
+  try {
+    chrome.runtime.sendMessage({
+      action: "removeHighlight"
+    });
+  } catch (e) {
+    console.error("Error sending removeHighlight message:", e);
+  }
 }
 
 // Inspect the element in the Elements panel
@@ -708,18 +787,102 @@ function inspectElementInDevTools() {
   elementsPanelAnnouncement.textContent = "Moving to Elements panel to inspect the selected element";
   
   // Use the inspect function to inspect the element
-  chrome.devtools.inspectedWindow.eval(
-    `inspect(document.querySelector('${selectedElement.selector.replace(/'/g, "\\'")}'))`,
-    function(result, isException) {
-      if (isException) {
-        console.error('Error inspecting element:', isException);
-        elementsPanelAnnouncement.textContent = "Error: Could not inspect element in Elements panel";
-      } else {
-        // Keep announcement visible until user takes action
-        // No timeout - content will remain until next user interaction
+  try {
+    chrome.devtools.inspectedWindow.eval(
+      `inspect(document.querySelector('${selectedElement.selector.replace(/'/g, "\\'")}'))`,
+      function(result, isException) {
+        if (isException) {
+          console.error('Error inspecting element:', isException);
+          elementsPanelAnnouncement.textContent = "Error: Could not inspect element in Elements panel";
+        } else {
+          // Keep announcement visible until user takes action
+          // No timeout - content will remain until next user interaction
+        }
       }
+    );
+  } catch (e) {
+    console.error("Error in inspectElementInDevTools:", e);
+    elementsPanelAnnouncement.textContent = "Error: Could not access DevTools API";
+  }
+}
+
+/**
+ * Handle page navigation events - reset the panel UI
+ * @param {string} url - The URL of the new page
+ */
+function handlePageNavigation(url) {
+  console.log("Page navigated to:", url);
+  
+  // Update the tab ID if available from devtools
+  try {
+    if (chrome.devtools && chrome.devtools.inspectedWindow) {
+      inspectedTabId = chrome.devtools.inspectedWindow.tabId;
+      // Notify the background script of the current tab
+      port.postMessage({ 
+        action: "setTabId", 
+        tabId: inspectedTabId 
+      });
     }
-  );
+  } catch (e) {
+    console.error("Error in handlePageNavigation:", e);
+  }
+  
+  // Reset UI state
+  statusEl.textContent = "Page changed - Run test to check accessibility";
+  statusEl.style.color = ""; // Reset to default color
+  
+  // Clear results and summary
+  summarySection.classList.add('hidden');
+  
+  // Reset results lists
+  failuresList.innerHTML = '<li class="empty-message">Run the test to see results</li>';
+  warningsList.innerHTML = '<li class="empty-message">Run the test to see results</li>';
+  allList.innerHTML = '<li class="empty-message">Run the test to see results</li>';
+  
+  // Clear any selected element and details panel
+  selectedElement = null;
+  hideDetailsPanel();
+  
+  // Reset the test results
+  testResults = null;
+  
+  // Reset the live region announcement but add a message for screen readers
+  resultsLiveRegion.textContent = ''; 
+  setTimeout(() => {
+    resultsLiveRegion.textContent = 'Page has changed. Please run the test again to check accessibility.';
+  }, 50);
+  
+  // Remove any highlight from the previous page
+  removeHighlightFromPage();
+}
+
+// Helper function to truncate strings
+function truncateString(str, maxLength) {
+  if (!str) return '';
+  if (str.length <= maxLength) return str;
+  return str.substring(0, maxLength) + '...';
+}
+
+// Function to format HTML with syntax highlighting
+function formatHTML(html) {
+  if (!html) return '';
+  
+  // Replace special characters
+  let formatted = html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  
+  // Highlight tags
+  formatted = formatted.replace(/&lt;(\/?[a-zA-Z][a-zA-Z0-9:._-]*)(\s[^&]*)?&gt;/g, 
+    '<span style="color:#0000cc;">&lt;$1</span><span style="color:#8B2252;">$2</span><span style="color:#0000cc;">&gt;</span>');
+  
+  // Highlight attributes
+  formatted = formatted.replace(/(\s+)([a-zA-Z][a-zA-Z0-9:._-]*)(=)(&quot;[^&]*&quot;)/g, 
+    '$1<span style="color:#994500;">$2</span><span style="color:#000000;">$3</span><span style="color:#1A1AA6;">$4</span>');
+  
+  return formatted;
 }
 
 // Function to activate a tab and show its panel
@@ -753,35 +916,6 @@ function activateTab(tabElement) {
   
   // Also remove any highlight on the page
   removeHighlightFromPage();
-}
-
-// Helper function to truncate strings
-function truncateString(str, maxLength) {
-  if (!str) return '';
-  if (str.length <= maxLength) return str;
-  return str.substring(0, maxLength) + '...';
-}
-
-// Function to format HTML with syntax highlighting
-function formatHTML(html) {
-  if (!html) return '';
-  
-  // Replace special characters
-  let formatted = html
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-  
-  // Highlight tags
-  formatted = formatted.replace(/&lt;(\/?[a-zA-Z][a-zA-Z0-9:._-]*)(\s[^&]*)?&gt;/g, 
-    '<span style="color:#0000cc;">&lt;$1</span><span style="color:#8B2252;">$2</span><span style="color:#0000cc;">&gt;</span>');
-  
-  // Highlight attributes
-  formatted = formatted.replace(/(\s+)([a-zA-Z][a-zA-Z0-9:._-]*)(=)(&quot;[^&]*&quot;)/g, 
-    '$1<span style="color:#994500;">$2</span><span style="color:#000000;">$3</span><span style="color:#1A1AA6;">$4</span>');
-  
-  return formatted;
 }
 
 // Initialize the panel
