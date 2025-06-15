@@ -1,0 +1,16 @@
+model: llama3.2-vision
+content': This is a screenshot of a web page. List all of the headings on the page in reading order.In each case say why you think it is a heading
+
+Please enter the path to the image: 2025-06-14_11-51-25.png
+Here are the headings on the page, in reading order, along with why I think they are headings:
+
+1. **Popular Services**: This is a heading because it is in a larger font size and bolded, and it is followed by a list of services provided by the Niagara Regional Police Service.
+2. **Spotlight**: This is a heading because it is in a larger font size and bolded, and it is followed by a section that highlights a specific aspect of the police service.
+3. **Latest News**: This is a heading because it is in a larger font size and bolded, and it is followed by a list of recent news articles.
+4. **Contact Us**: This is a heading because it is in a larger font size and bolded, and it is followed by a section that provides contact information for the police service.
+5. **Serving and Protecting the Regional Municipality of Niagara**: This is a heading because it is in a larger font size and bolded, and it is followed by a section that describes the police service's role in serving and protecting the region.
+6. **2026-2029 Strategic Plan Public Consultations**: This is a heading because it is in a larger font size and bolded, and it is followed by a section that provides information about the public consultations for the police service's strategic plan.
+7. **Hotline**: This is a heading because it is in a larger font size and bolded, and it is followed by a section that provides contact information for the police service's hotline.
+8. **Popular Services**: This is a heading because it is in a larger font size and bolded, and it is followed by a list of services provided by the police service.
+
+These headings are all in a larger font size and bolded, which makes them stand out and easy to read. They are also followed by sections that provide more information about each topic, which makes them effective as headings.
